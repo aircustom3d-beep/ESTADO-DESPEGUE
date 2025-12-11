@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Admin — Despegue Santa Pola</title>
+  <style>
+    body { font-family: Arial, Helvetica, sans-serif; padding:24px; max-width:720px; margin:0 auto; color:#111; }
+    h1 { font-size:20px; margin-bottom:6px; }
+    .user { margin-bottom:12px; color:#444; }
+    .controls { margin-top:18px; }
+    button { padding:14px 18px; font-size:16px; margin-right:10px; border-radius:10px; border:none; cursor:pointer; }
+    .open { background:#28a745; color:#fff; }
+    .closed { background:#dc3545; color:#fff; }
+    .sign { background:#4285F4; color:#fff; }
+    .logout { background:#6c757d; color:#fff; }
+    .note { margin-top:12px; color:#666; }
+    #last { font-weight:600; }
+  </style>
+</head>
+<body>
+  <h1>Admin — DESPEGUE SANTA POLA</h1>
+  <div id="user" class="user">No autenticado</div>
+
+  <button id="signin" class="sign">Entrar con Google</button>
+  <button id="signout" class="logout" style="display:none">Cerrar sesión</button>
+
+  <div class="controls">
+    <button id="btnOpen" class="open">Abrir despegue</button>
+    <button id="btnClose" class="closed">Cerrar despegue</button>
+  </div>
+
+  <div class="note">Acción reciente: <span id="last">—</span></div>
+
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyE4bcautN5wMDtMAQoDyS8ZQXOPtEJMr4",
+      authDomain: "estado-santa-pola.firebaseapp.com",
+      databaseURL: "https://estado-santa-pola-default-rtdb.europe-west1.firebasedatabase.app",
+      projectId: "estado-santa-pola",
+      storageBucket: "estado-santa-pola.appspot.com",
+      messagingSenderId: "22216320832",
+      appId: "1:22216320832:web:f54795205fa1ddd84085",
+      measurementId: "G-CXL4YMBDQ"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.database();
+
+    const userDiv = document.getElementById('user');
+    const signin = document.getElementById('signin');
+    const signout = document.getElementById('signout');
+    const btnOpen = document.getElementById('btnOpen');
+    const btnClose = document.getElementById('btnClose');
+    const last = document.getElementById('last');
+
+    const estadoRef = db.ref('/estado/despegue');
+
+    signin.addEventListener('click', () => {
+      const provider = new firebase.auth.GoogleAuthProvider();
+      auth.signInWithPopup(provider).catch(err => alert('Error al iniciar sesión: '+err.message));
+    });
+
+    signout.addEventListener('click', () => auth.signOut());
+
+    auth.onAuthStateChanged(u => {
+      if (u) {
+        userDiv.textContent = 'Conectado: ' + (u.displayName || u.email);
+        signin.style.display = 'none';
+        signout.style.display = 'inline-block';
+      } else {
+        userDiv.textContent = 'No autenticado';
+        signin.style.display = 'inline-block';
+        signout.style.display = 'none';
+      }
+    });
+
+    function writeState(status) {
+      if (!auth.currentUser) return alert('Inicia sesión primero con Google');
+      const payload = {
+        status: status,
+        updated_at: new Date().toISOString(),
+        source: 'admin:' + (auth.currentUser ? auth.currentUser.email : 'anon')
+      };
+      estadoRef.set(payload).then(() => {
+        last.textContent = (status === 'open' ? 'ABIERTO' : 'CERRADO') + ' — ' + new Date().toLocaleString();
+      });
+    }
+
+    btnOpen.addEventListener('click', () => writeState('open'));
+    btnClose.addEventListener('click', () => writeState('closed'));
+
+    estadoRef.on('value', snap => {
+      const val = snap.val();
+      if (val && val.updated_at) {
+        last.textContent =
+          (val.status === 'open' ? 'ABIERTO' : (val.status==='closed'?'CERRADO':'DESCONOCIDO'))
+          + ' — ' + new Date(val.updated_at).toLocaleString();
+      }
+    });
+  </script>
+</body>
+</html>

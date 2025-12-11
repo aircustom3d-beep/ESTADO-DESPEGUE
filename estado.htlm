@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Despegue Santa Pola - Estado</title>
+  <style>
+    body { font-family: Arial, Helvetica, sans-serif; text-align:center; padding:30px; background:#fff; color:#111;}
+    h1 { margin-bottom:6px; font-size:20px; color:#222; }
+    .badge { display:inline-block; padding:20px 28px; border-radius:12px; color:#fff; font-size:24px; font-weight:700; min-width:280px; box-shadow:0 6px 18px rgba(0,0,0,0.08); }
+    .open { background:#28a745; }
+    .closed { background:#dc3545; }
+    .unknown { background:#6c757d; }
+    .meta { margin-top:12px; color:#444; font-size:14px; }
+    .container { max-width:520px; margin:0 auto; }
+    small { color:#666; display:block; margin-top:6px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>DESPEGUE SANTA POLA</h1>
+    <div id="badge" class="badge unknown">Cargando…</div>
+    <div id="meta" class="meta">—</div>
+    <small>Actualización instantánea (Firebase Realtime)</small>
+  </div>
+
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyE4bcautN5wMDtMAQoDyS8ZQXOPtEJMr4",
+      authDomain: "estado-santa-pola.firebaseapp.com",
+      databaseURL: "https://estado-santa-pola-default-rtdb.europe-west1.firebasedatabase.app",
+      projectId: "estado-santa-pola",
+      storageBucket: "estado-santa-pola.appspot.com",
+      messagingSenderId: "22216320832",
+      appId: "1:22216320832:web:f54795205fa1ddd84085",
+      measurementId: "G-CXL4YMBDQ"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+    const badge = document.getElementById('badge');
+    const meta = document.getElementById('meta');
+
+    const estadoRef = db.ref('/estado/despegue');
+
+    function render(data) {
+      if (!data) {
+        badge.className = 'badge unknown';
+        badge.textContent = '⚪ DESCONOCIDO';
+        meta.textContent = 'Sin datos';
+        return;
+      }
+
+      const status = data.status || 'unknown';
+      const updated = data.updated_at ? new Date(data.updated_at) : null;
+
+      if (status === 'open') {
+        badge.className = 'badge open';
+        badge.textContent = '🟢 DESPEGUE ABIERTO';
+      } else if (status === 'closed') {
+        badge.className = 'badge closed';
+        badge.textContent = '🔴 DESPEGUE CERRADO';
+      } else {
+        badge.className = 'badge unknown';
+        badge.textContent = '⚪ DESCONOCIDO';
+      }
+
+      if (updated) {
+        const ageMin = Math.round((Date.now() - updated.getTime())/60000);
+        meta.textContent = 'Última actualización: ' + updated.toLocaleString() + ' (' + ageMin + ' min)';
